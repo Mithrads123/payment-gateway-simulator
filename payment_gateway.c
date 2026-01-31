@@ -16,8 +16,12 @@ typedef struct {
 
 typedef struct {
     char txnId[10];
+    char userId[10];
+    char merchantId[10];
     int amount;
+    char status[20];
 } Transaction;
+
 
 // --------- In-Memory Storage ---------
 User users[MAX];
@@ -79,19 +83,44 @@ void makePayment(char *txnId, char *userId, char *merchantId, int amount) {
     }
 
     if (users[uIndex].balance < amount) {
-        printf("INSUFFICIENT_BALANCE\n");
-        return;
+        strcpy(transactions[txnCount].txnId, txnId);
+        strcpy(transactions[txnCount].userId, userId);
+        strcpy(transactions[txnCount].merchantId, merchantId);
+        transactions[txnCount].amount = amount;
+        strcpy(transactions[txnCount].status, "FAILED");
+        txnCount++;
+
+printf("INSUFFICIENT_BALANCE\n");
+return;
+
     }
 
     users[uIndex].balance -= amount;
     merchants[mIndex].balance += amount;
-
+    
     strcpy(transactions[txnCount].txnId, txnId);
+    strcpy(transactions[txnCount].userId, userId);
+    strcpy(transactions[txnCount].merchantId, merchantId);
     transactions[txnCount].amount = amount;
+    strcpy(transactions[txnCount].status, "SUCCESS");
     txnCount++;
+
 
     printf("PAYMENT_SUCCESS\n");
 }
+
+void printTransactionHistory() {
+    printf("\n--- Transaction History ---\n");
+    for (int i = 0; i < txnCount; i++) {
+        printf("TxnID: %s | User: %s | Merchant: %s | Amount: %d | Status: %s\n",
+               transactions[i].txnId,
+               transactions[i].userId,
+               transactions[i].merchantId,
+               transactions[i].amount,
+               transactions[i].status);
+    }
+}
+
 
 // --------- Main ---------
 int main() {
@@ -100,7 +129,10 @@ int main() {
     addMerchant("M1");
 
     makePayment("T1", "U1", "M1", 500);
-    makePayment("T1", "U1", "M1", 500);
+    makePayment("T2", "U1", "M1", 700);  // insufficient balance
+    makePayment("T1", "U1", "M1", 500);  // duplicate
+
+    printTransactionHistory();
 
     return 0;
 }
