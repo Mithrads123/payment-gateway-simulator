@@ -19,8 +19,10 @@ typedef struct {
     char userId[10];
     char merchantId[10];
     int amount;
-    char status[20];
+    char status[20];      // SUCCESS / FAILED / REFUNDED
+    int refunded;         // 0 = not refunded, 1 = refunded
 } Transaction;
+
 
 
 // --------- In-Memory Storage ---------
@@ -66,6 +68,13 @@ void addMerchant(char *merchantId) {
     merchants[merchantCount].balance = 0;
     merchantCount++;
 }
+int findTransaction(char *txnId) {
+    for (int i = 0; i < txnCount; i++) {
+        if (strcmp(transactions[i].txnId, txnId) == 0)
+            return i;
+    }
+    return -1;
+}
 
 void makePayment(char *txnId, char *userId, char *merchantId, int amount) {
 
@@ -88,6 +97,7 @@ void makePayment(char *txnId, char *userId, char *merchantId, int amount) {
         strcpy(transactions[txnCount].merchantId, merchantId);
         transactions[txnCount].amount = amount;
         strcpy(transactions[txnCount].status, "FAILED");
+        transactions[txnCount].refunded = 0;
         txnCount++;
 
 printf("INSUFFICIENT_BALANCE\n");
@@ -103,6 +113,7 @@ return;
     strcpy(transactions[txnCount].merchantId, merchantId);
     transactions[txnCount].amount = amount;
     strcpy(transactions[txnCount].status, "SUCCESS");
+    transactions[txnCount].refunded = 0;
     txnCount++;
 
 
@@ -120,6 +131,36 @@ void printTransactionHistory() {
                transactions[i].status);
     }
 }
+void refundPayment(char *txnId) {
+
+    int tIndex = findTransaction(txnId);
+
+    if (tIndex == -1) {
+        printf("TRANSACTION_NOT_FOUND\n");
+        return;
+    }
+
+    if (strcmp(transactions[tIndex].status, "SUCCESS") != 0) {
+        printf("REFUND_NOT_ALLOWED\n");
+        return;
+    }
+
+    if (transactions[tIndex].refunded == 1) {
+        printf("ALREADY_REFUNDED\n");
+        return;
+    }
+
+    int uIndex = findUser(transactions[tIndex].userId);
+    int mIndex = findMerchant(transactions[tIndex].merchantId);
+
+    users[uIndex].balance += transactions[tIndex].amount;
+    merchants[mIndex].balance -= transactions[tIndex].amount;
+
+    strcpy(transactions[tIndex].status, "REFUNDED");
+    transactions[tIndex].refunded = 1;
+
+    printf("REFUND_SUCCESS\n");
+}
 
 
 // --------- Main ---------
@@ -129,11 +170,15 @@ int main() {
     addMerchant("M1");
 
     makePayment("T1", "U1", "M1", 500);
-    makePayment("T2", "U1", "M1", 700);  // insufficient balance
-    makePayment("T1", "U1", "M1", 500);  // duplicate
+    makePayment("T2", "U1", "M1", 700);
+
+    refundPayment("T1");
+    refundPayment("T1");   // double refund attempt
+    refundPayment("T2");   // failed txn refund
 
     printTransactionHistory();
 
     return 0;
 }
+
 
