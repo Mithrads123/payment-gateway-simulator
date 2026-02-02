@@ -162,6 +162,35 @@ void refundPayment(char *txnId) {
     printf("REFUND_SUCCESS\n");
 }
 
+void generateReconciliationReport() {
+
+    int successCount = 0;
+    int failedCount = 0;
+    int refundCount = 0;
+    int netAmount = 0;
+
+    for (int i = 0; i < txnCount; i++) {
+
+        if (strcmp(transactions[i].status, "SUCCESS") == 0) {
+            successCount++;
+            netAmount += transactions[i].amount;
+        }
+        else if (strcmp(transactions[i].status, "FAILED") == 0) {
+            failedCount++;
+        }
+        else if (strcmp(transactions[i].status, "REFUNDED") == 0) {
+            refundCount++;
+            netAmount -= transactions[i].amount;
+        }
+    }
+
+    printf("\n--- Reconciliation Report ---\n");
+    printf("Total Transactions : %d\n", txnCount);
+    printf("Successful         : %d\n", successCount);
+    printf("Failed             : %d\n", failedCount);
+    printf("Refunded           : %d\n", refundCount);
+    printf("Net Settled Amount : %d\n", netAmount);
+}
 
 // --------- Main ---------
 int main() {
@@ -173,12 +202,10 @@ int main() {
     makePayment("T2", "U1", "M1", 700);
 
     refundPayment("T1");
-    refundPayment("T1");   // double refund attempt
-    refundPayment("T2");   // failed txn refund
 
     printTransactionHistory();
+    generateReconciliationReport();
 
     return 0;
 }
-
 
